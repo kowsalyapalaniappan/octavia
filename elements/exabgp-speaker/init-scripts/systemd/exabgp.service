@@ -1,0 +1,13 @@
+[Unit]
+Description=ExaBGP
+After=network.target
+ConditionPathExists=/var/lib/octavia/exabgp/exabgp.conf
+
+[Service]
+ExecStartPre=/usr/local/bin/exabgp --test --root /var/lib/octavia/exabgp --env /var/lib/octavia/exabgp/exabgp.env /var/lib/octavia/exabgp/exabgp.conf
+ExecStart=/usr/local/bin/exabgp --root /var/lib/octavia/exabgp --env /var/lib/octavia/exabgp/exabgp.env /var/lib/octavia/exabgp/exabgp.conf
+ExecReload=/bin/kill -USR1 $MAINPID
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
