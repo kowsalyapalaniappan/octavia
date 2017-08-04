@@ -121,6 +121,8 @@ amphora_agent_opts = [
                       "controller to run before terminating the socket.")),
     # Do not specify in octavia.conf, loaded at runtime
     cfg.StrOpt('amphora_id', help=_("The amphora ID.")),
+    cfg.StrOpt('exabgp_base_path', default='/var/lib/octavia/exabgp',
+               help=_("The exabgp conf path.")),
 ]
 
 networking_opts = [
