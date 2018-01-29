@@ -351,6 +351,8 @@ AMP_element_sequence="$AMP_element_sequence certs-ramfs"
 if [ "$AMP_DISABLE_SSHD" -eq 1 ]; then
     AMP_element_sequence="$AMP_element_sequence remove-sshd"
 fi
+# Add exabgp-speaker element
+AMP_element_sequence="$AMP_element_sequence exabgp-speaker"
 
 # Allow full elements override
 if [ "$DIB_ELEMENTS" ]; then
