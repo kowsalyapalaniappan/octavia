@@ -141,3 +141,11 @@ def get_os_init_system():
                     else:
                         return consts.INIT_SYSVINIT
     return consts.INIT_UNKOWN
+
+
+def get_process_id(process_name):
+    child = subprocess.Popen('pgrep {process_name}'.format(
+                             process_name=process_name).split(),
+                             stdout=subprocess.PIPE)
+    result = child.communicate()[0].rstrip()
+    return result

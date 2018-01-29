@@ -21,6 +21,7 @@ from werkzeug import exceptions
 from octavia.amphorae.backends.agent import api_server
 from octavia.amphorae.backends.agent.api_server import amphora_info
 from octavia.amphorae.backends.agent.api_server import certificate_update
+from octavia.amphorae.backends.agent.api_server import exabgp
 from octavia.amphorae.backends.agent.api_server import keepalived
 from octavia.amphorae.backends.agent.api_server import listener
 from octavia.amphorae.backends.agent.api_server import osutils
@@ -50,6 +51,7 @@ class Server(object):
         self._listener = listener.Listener()
         self._plug = plug.Plug(self._osutils)
         self._amphora_info = amphora_info.AmphoraInfo(self._osutils)
+        self._exabgp = exabgp.ExaBGP()
 
         register_app_error_handler(self.app)
 
@@ -109,6 +111,29 @@ class Server(object):
         self.app.add_url_rule(rule=PATH_PREFIX + '/interface/<ip_addr>',
                               view_func=self.get_interface,
                               methods=['GET'])
+        self.app.add_url_rule(rule=PATH_PREFIX + '/exabgp/<action>',
+                              view_func=self.manage_service_exabgp,
+                              methods=['PUT'])
+        self.app.add_url_rule(rule=PATH_PREFIX +
+                              '/exabgp/upload',
+                              view_func=self.upload_exabgp_config,
+                              methods=['PUT'])
+        self.app.add_url_rule(rule=PATH_PREFIX +
+                              '/exabgp/status',
+                              view_func=self.get_exabgp_status,
+                              methods=['GET'])
+        self.app.add_url_rule(rule=PATH_PREFIX +
+                              '/exabgp/register_amphora',
+                              view_func=self.exabgp_register_amphora,
+                              methods=['PUT'])
+        self.app.add_url_rule(rule=PATH_PREFIX +
+                              '/exabgp/unregister_amphora',
+                              view_func=self.exabgp_unregister_amphora,
+                              methods=['PUT'])
+        self.app.add_url_rule(rule=PATH_PREFIX +
+                              '/exabgp/disable',
+                              view_func=self.exabgp_service_disable,
+                              methods=['DELETE'])
 
     def upload_haproxy_config(self, amphora_id, listener_id):
         return self._listener.upload_haproxy_config(amphora_id, listener_id)
@@ -184,3 +209,43 @@ class Server(object):
 
     def get_interface(self, ip_addr):
         return self._amphora_info.get_interface(ip_addr)
+
+    def manage_service_exabgp(self, action):
+        return self._exabgp.exabgp_service_manager(action)
+
+    def upload_exabgp_config(self):
+        return self._exabgp.upload_exabgp_config()
+
+    def get_exabgp_status(self, exabgp_id):
+        return self._exabgp.get_status()
+
+    def exabgp_register_amphora(self):
+        try:
+            neigh_info = flask.request.get_json()
+            assert type(neigh_info) is dict
+            assert 'vips' in neigh_info
+            assert 'nexthop_ip' in neigh_info
+
+        except Exception:
+            raise exceptions.BadRequest(
+                description='Invalid vip or nexthop_ip information')
+        return self._exabgp.register_amphora(neigh_info['vips'],
+                                             neigh_info['nexthop_ip'])
+
+    def exabgp_unregister_amphora(self):
+        try:
+            neigh_info = flask.request.get_json()
+            assert type(neigh_info) is dict
+            assert 'vip' in neigh_info
+            assert 'vips' in neigh_info
+            assert 'nexthop_ip' in neigh_info
+
+        except Exception:
+            raise exceptions.BadRequest(
+                description='Invalid vip or nexthop_ip information')
+        return self._exabgp.unregister_amphora(neigh_info['vip'],
+                                               neigh_info['vips'],
+                                               neigh_info['nexthop_ip'])
+
+    def exabgp_service_disable(self):
+        return self._exabgp.service_disable()

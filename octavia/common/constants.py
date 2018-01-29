@@ -347,6 +347,8 @@ AGENT_API_TEMPLATES = '/templates'
 AGENT_CONF_TEMPLATE = 'amphora_agent_conf.template'
 USER_DATA_CONFIG_DRIVE_TEMPLATE = 'user_data_config_drive.template'
 
+EXABGP_CONF_TEMPLATE = 'exabgp_conf.j2'
+
 OPEN = 'OPEN'
 FULL = 'FULL'
 
@@ -402,6 +404,7 @@ FLOW_DOC_TITLES = {'AmphoraFlows': 'Amphora Flows',
                    'L7RuleFlows': 'Layer 7 Rule Flows'}
 
 NETNS_PRIMARY_INTERFACE = 'eth1'
+NETNS_DUMMY_INTERFACE = 'dummy0'
 SYSCTL_CMD = '/sbin/sysctl'
 
 AMP_ACTION_START = 'start'

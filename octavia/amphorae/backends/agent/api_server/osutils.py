@@ -19,6 +19,7 @@ import platform
 import shutil
 import stat
 import subprocess
+import sys
 
 import jinja2
 from oslo_config import cfg
@@ -209,11 +210,32 @@ class BaseOS(object):
     def has_ifup_all(self):
         return True
 
+    def write_dummy_vip_interface_file(self, interface_file_path,
+                                       dummy_interface, vip_list,
+                                       template_vip):
+        # write interface file
+
+        mode = stat.S_IRUSR | stat.S_IWUSR | stat.S_IRGRP | stat.S_IROTH
+
+        if CONF.amphora_agent.agent_server_network_file:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_APPEND
+        else:
+            flags = os.O_WRONLY | os.O_CREAT | os.O_TRUNC
+
+        with os.fdopen(os.open(interface_file_path, flags, mode),
+                       'w') as text_file:
+            text = template_vip.render(
+                interface=dummy_interface,
+                vip_list=vip_list,
+            )
+            text_file.write(text)
+
 
 class Ubuntu(BaseOS):
 
     ETH_X_PORT_CONF = 'plug_port_ethX.conf.j2'
     ETH_X_VIP_CONF = 'plug_vip_ethX.conf.j2'
+    DUMMY_X_VIP_CONF = 'plug_vip_dummyX.conf.j2'
 
     @classmethod
     def is_os_name(cls, os_name):
@@ -270,6 +292,7 @@ class Ubuntu(BaseOS):
                                  render_host_routes, template_vip=None):
         if not template_vip:
             template_vip = j2_env.get_template(self.ETH_X_VIP_CONF)
+
         super(Ubuntu, self).write_vip_interface_file(
             interface_file_path, primary_interface, vip, ip, broadcast,
             netmask, gateway, mtu, vrrp_ip, vrrp_version, render_host_routes,
@@ -290,6 +313,21 @@ class Ubuntu(BaseOS):
     def has_ifup_all(self):
         return True
 
+    def write_dummy_vip_interface_file(self, interface_file_path,
+                                       dummy_interface, vip_list,
+                                       template_vip=None):
+        if not template_vip:
+            template_vip = j2_env.get_template(self.DUMMY_X_VIP_CONF)
+
+        super(Ubuntu, self).write_dummy_vip_interface_file(
+            interface_file_path, dummy_interface, vip_list,
+            template_vip)
+
+    def get_exabgp_cli(self):
+        py_version = ".".join(sys.version.split(' ')[0].split('.')[0:-1])
+        return ('/usr/local/lib/python{}/dist-packages/exabgp/application'
+                '/cli.py'.format(py_version))
+
 
 class RH(BaseOS):
 
@@ -298,6 +336,7 @@ class RH(BaseOS):
     ETH_X_ALIAS_VIP_CONF = 'rh_plug_vip_ethX_alias.conf.j2'
     ROUTE_ETH_X_CONF = 'rh_route_ethX.conf.j2'
     RULE_ETH_X_CONF = 'rh_rule_ethX.conf.j2'
+    DUMMY_X_VIP_CONF = 'rh_plug_vip_dummyX.conf.j2'
 
     @classmethod
     def is_os_name(cls, os_name):
@@ -452,3 +491,17 @@ class RH(BaseOS):
 
     def has_ifup_all(self):
         return False
+
+    def write_dummy_vip_interface_file(self, interface_file_path,
+                                       dummy_interface, vip_with_prefix,
+                                       vip_ipv6, template_vip=None):
+        if not template_vip:
+            template_vip = j2_env.get_template(self.DUMMY_X_VIP_CONF)
+        super(RH, self).write_dummy_vip_interface_file(
+            interface_file_path, dummy_interface, vip_with_prefix,
+            vip_ipv6, template_vip)
+
+    def get_exabgp_cli(self):
+        py_version = ".".join(sys.version.split(' ')[0].split('.')[0:-1])
+        return ('/usr/lib/python{}/site-packages/exabgp/application'
+                '/cli.py'.format(py_version))
